@@ -429,7 +429,7 @@ def parse_ipos(html: str, now: datetime) -> list[dict]:
 
 
 def build_message(ipos: list[dict], now: datetime):
-    """Return the exact requested reminder for today's qualifying listings."""
+    """Build one WhatsApp message containing all qualifying IPO listings today."""
     today = now.date()
     listing_today = sorted(
         (
@@ -439,28 +439,29 @@ def build_message(ipos: list[dict], now: datetime):
         key=lambda ipo: ipo["name"].lower(),
     )
 
-    if not listing_today and os.getenv("ALWAYS_POST") != "1":
-        return None
-
-    # Keep the message format minimal and exact as requested.
     if not listing_today:
         return None
 
-    lines = []
-    for ipo in listing_today:
+    # One header, one date, all qualifying IPOs, and one signature.
+    lines = [
+        "📢 PassiveX IPO Reminder",
+        "",
+        f"📅 Date: {now.strftime('%d %b %Y')}",
+        "",
+    ]
+
+    for index, ipo in enumerate(listing_today):
+        if index:
+            lines.append("──────────")
+            lines.append("")
         lines.extend([
-            "📢 PassiveX IPO Reminder",
-            "",
-            f"📅 Date: {now.strftime('%d %b %Y')}",
             f"🏢 IPO: {ipo['name']}",
             f"💰 Estimated Profit per Lot: ₹{round(ipo['profit']):,}",
-            "",
-            "— PassiveX",
         ])
-        # If multiple IPOs qualify today, keep each reminder in the same exact format.
         lines.append("")
 
-    return "\n".join(lines).strip()
+    lines.append("— PassiveX")
+    return "\n".join(lines)
 
 def deliver(session: requests.Session, message: str) -> None:
 
