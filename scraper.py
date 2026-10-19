@@ -266,7 +266,10 @@ def deliver(session: requests.Session, message: str) -> None:
         return
 
     token = os.getenv("WHAPI_TOKEN", "").strip()
-    group_id = os.getenv("WHATSAPP_GROUP_ID", "").strip()
+    group_id = (
+        os.getenv("WHATSAPP_GROUP_ID", "").strip()
+        or os.getenv("WHATSAPP_CHANNEL_ID", "").strip()
+    )
     if not token or not group_id:
         raise RuntimeError("Set WHAPI_TOKEN and WHATSAPP_GROUP_ID before sending.")
 
@@ -288,7 +291,22 @@ def main() -> int:
         except (AttributeError, OSError):
             pass
 
+    # TEST ONLY: set TEST_DATE=2026-10-21 in GitHub Actions to simulate
+    # the listing day. Remove TEST_DATE from the workflow after testing.
     now = datetime.now(IST)
+    test_date = os.getenv("TEST_DATE", "").strip()
+    if test_date:
+        try:
+            fake_date = datetime.strptime(test_date, "%Y-%m-%d").date()
+            now = datetime.combine(fake_date, now.timetz()).replace(tzinfo=IST)
+            log.warning(
+                "TEST MODE ACTIVE: filtering against %s, not today's real date.",
+                test_date,
+            )
+        except ValueError:
+            log.error("TEST_DATE must be YYYY-MM-DD, for example 2026-10-21.")
+            return 2
+
     session = make_session()
     try:
         ipos = parse_ipos(fetch_html(session), now)
