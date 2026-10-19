@@ -164,7 +164,7 @@ def to_float(text: str, last: bool = False):
 
     if not last:
 
-        cleaned = re.sub(r"**\\(**?-?\d+(?:**\.**\d+)?\s*%**\\)**?", " ", cleaned)
+        cleaned = re.sub(r"\(?-?\d+(?:\.\d+)?\s*%\)?", " ", cleaned)
 
     numbers = NUM.findall(cleaned)
 
