@@ -1,9 +1,12 @@
-name: PassiveX Sunday Update
+name: PassiveX Daily Update
 
 on:
   schedule:
-    - cron: "30 3 * * 0"   # 03:30 UTC Sunday = 09:00 AM IST
-  workflow_dispatch:        # manual test button
+    - cron: "15 4 * * 1-5"   # 04:15 UTC Mon-Fri = 9:45 AM IST (GitHub often starts a few minutes late)
+  workflow_dispatch:          # manual test button
+
+permissions:
+  contents: read
 
 jobs:
   run:
@@ -18,6 +21,5 @@ jobs:
       - run: pip install -r requirements.txt
       - run: python scraper.py
         env:
-          WEBHOOK_URL: ${{ secrets.WEBHOOK_URL }}
           WHAPI_TOKEN: ${{ secrets.WHAPI_TOKEN }}
           WHATSAPP_CHANNEL_ID: ${{ secrets.WHATSAPP_CHANNEL_ID }}
