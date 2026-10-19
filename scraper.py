@@ -7,6 +7,7 @@ and posts one message to a WhatsApp Channel through Whapi.Cloud.
 import os
 import re
 import sys
+import time
 import logging
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -200,18 +201,38 @@ def deliver(session: requests.Session, text: str) -> None:
     if os.getenv("DRY_RUN") == "1":
         log.info("DRY_RUN set, not sending.")
         return
-    token, channel_id = os.getenv("WHAPI_TOKEN"), os.getenv("WHATSAPP_CHANNEL_ID")
-    if not token or not channel_id:
+    token = os.getenv("WHAPI_TOKEN")
+    # WHATSAPP_CHANNEL_ID may hold several comma-separated IDs: the Channel
+    # (ends @newsletter) and/or groups (end @g.us).
+    recipients = [x.strip() for x in os.getenv("WHATSAPP_CHANNEL_ID", "").split(",") if x.strip()]
+    if not token or not recipients:
         raise RuntimeError("WHAPI_TOKEN and WHATSAPP_CHANNEL_ID must be set.")
-    r = session.post(WHAPI_URL, headers={"Authorization": f"Bearer {token}"},
-                     json={"to": channel_id, "body": text}, timeout=30)
-    if r.status_code >= 400:
-        log.error("Whapi error %s: %s", r.status_code, r.text[:300])
-    r.raise_for_status()
-    log.info("Delivered (HTTP %s)", r.status_code)
+    failed = []
+    for n, to in enumerate(recipients):
+        if n:
+            time.sleep(5)   # small gap between sends
+        try:
+            r = session.post(WHAPI_URL, headers={"Authorization": f"Bearer {token}"},
+                             json={"to": to, "body": text}, timeout=30)
+            if r.status_code >= 400:
+                log.error("Whapi error %s for %s: %s", r.status_code, to, r.text[:300])
+                failed.append(to)
+                continue
+            log.info("Delivered to %s (HTTP %s)", to, r.status_code)
+        except requests.RequestException as e:
+            log.error("Network error sending to %s: %s", to, e)
+            failed.append(to)
+    if failed:
+        raise RuntimeError(f"Failed to deliver to: {', '.join(failed)}")
 
 
 def main() -> int:
+    # Windows consoles often can't print emoji; avoid crashing before the send.
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except Exception:
+            pass
     today = datetime.now(IST)
     session = make_session()
     try:
