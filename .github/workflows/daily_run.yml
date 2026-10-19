@@ -23,4 +23,3 @@ jobs:
         env:
           WHAPI_TOKEN: ${{ secrets.WHAPI_TOKEN }}
           WHATSAPP_CHANNEL_ID: ${{ secrets.WHATSAPP_CHANNEL_ID }}
-          TEST_DATE: "2026-10-21"
