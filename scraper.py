@@ -296,6 +296,15 @@ def fetch_html(session: requests.Session) -> str:
 
 
 
+def clean_ipo_name(name: str) -> str:
+    name = re.sub(r'\[email[^\]]*\]', '', name, flags=re.I)
+    name = re.sub(r'\s+', ' ', name)
+    return name.strip()
+
+
+
+
+
 def parse_ipos(html: str, now: datetime) -> list[dict]:
 
     soup = BeautifulSoup(html, "html.parser")
@@ -328,7 +337,7 @@ def parse_ipos(html: str, now: datetime) -> list[dict]:
 
         try:
 
-            name = cell_text(cells[columns["name"]])
+            name = clean_ipo_name(cell_text(cells[columns["name"]]))
 
             gmp_text = cell_text(cells[columns["gmp"]])
 
