@@ -21,5 +21,6 @@ jobs:
       - run: pip install -r requirements.txt
       - run: python scraper.py
         env:
-          WHAPI_TOKEN: ${{ secrets.WHAPI_TOKEN }}
-          WHATSAPP_CHANNEL_ID: ${{ secrets.WHATSAPP_CHANNEL_ID }}
+          WAHA_API_URL: http://127.0.0.1:3000
+          WAHA_API_KEY: ${{ secrets.WAHA_API_KEY }}
+          WHATSAPP_GROUP_ID: ${{ secrets.WHATSAPP_GROUP_ID }}
