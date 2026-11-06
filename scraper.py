@@ -38,10 +38,6 @@ from urllib3.util.retry import Retry
 
 URL = "https://www.investorgain.com/report/live-ipo-gmp/331/"
 
-WHAPI_URL = "https://gate.whapi.cloud/messages/text"
-
-
-
 IST = ZoneInfo("Asia/Kolkata")
 
 GMP_THRESHOLD = 10.0
@@ -464,51 +460,39 @@ def build_message(ipos: list[dict], now: datetime):
     return "\n".join(lines)
 
 def deliver(session: requests.Session, message: str) -> None:
-
+    """Send the notification to the configured WhatsApp group through WAHA."""
     if os.getenv("DRY_RUN") == "1":
-
         log.info("DRY_RUN=1; message printed only, not sent.")
-
         return
 
+    api_url = os.getenv("WAHA_API_URL", "http://127.0.0.1:3000").strip().rstrip("/")
+    api_key = os.getenv("WAHA_API_KEY", "").strip()
+    group_id = os.getenv("WHATSAPP_GROUP_ID", "").strip()
 
-
-    token = os.getenv("WHAPI_TOKEN", "").strip()
-
-    group_id = (
-
-        os.getenv("WHATSAPP_GROUP_ID", "").strip()
-
-        or os.getenv("WHATSAPP_CHANNEL_ID", "").strip()
-
-    )
-
-    if not token or not group_id:
-
-        raise RuntimeError("Set WHAPI_TOKEN and WHATSAPP_GROUP_ID before sending.")
-
-
+    if not api_key or not group_id:
+        raise RuntimeError(
+            "Set WAHA_API_KEY and WHATSAPP_GROUP_ID before sending."
+        )
 
     response = session.post(
-
-        WHAPI_URL,
-
-        headers={"Authorization": f"Bearer {token}"},
-
-        json={"to": group_id, "body": message},
-
+        f"{api_url}/api/sendText",
+        headers={
+            "X-Api-Key": api_key,
+            "Content-Type": "application/json",
+        },
+        json={
+            "session": "default",
+            "chatId": group_id,
+            "text": message,
+        },
         timeout=30,
-
     )
-
     if response.status_code >= 400:
-
-        raise RuntimeError(f"Whapi delivery failed: HTTP {response.status_code}: {response.text[:500]}")
-
-    log.info("Whapi accepted the message (HTTP %s).", response.status_code)
-
-
-
+        raise RuntimeError(
+            f"WAHA delivery failed: HTTP {response.status_code}: "
+            f"{response.text[:500]}"
+        )
+    log.info("WAHA accepted the message (HTTP %s).", response.status_code)
 
 
 def main() -> int:
